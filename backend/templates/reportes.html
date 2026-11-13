@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Reportes | Proyecto Bar{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reportes.css') }}">
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem; display: flex; justify-content: flex-end;">
+    <a href="{{ url_for('page_cierre_caja') }}" class="btn btn-primary" style="text-decoration: none;">
+        🧾 Ir a Cierre de Caja Diario
+    </a>
+</div>
+
+<section class="rep-filtros">
+    <div class="rep-presets">
+        <button class="preset active" data-preset="7d">Últimos 7 días</button>
+        <button class="preset" data-preset="30d">Últimos 30 días</button>
+        <button class="preset" data-preset="mes">Este mes</button>
+        <button class="preset" data-preset="mes-ant">Mes anterior</button>
+        <button class="preset" data-preset="year">Año actual</button>
+    </div>
+
+    <div class="rep-fechas">
+        <input type="date" id="filtroDesde">
+        <span>→</span>
+        <input type="date" id="filtroHasta">
+        <select id="filtroSucursal">
+            <option value="">Todas las sucursales</option>
+        </select>
+        <button class="btn btn-primary" id="btnAplicar">🔎 Aplicar</button>
+        <button class="btn btn-secondary" id="btnExportar" data-permiso="reportes.ventas">⬇️ CSV</button>
+    </div>
+</section>
+
+<section class="kpis-grid">
+    <article class="kpi-card">
+        <span class="kpi-label">💰 Ventas totales</span>
+        <strong class="kpi-value" id="kpiVentas">$0</strong>
+        <span class="kpi-var" id="kpiVentasVar">—</span>
+    </article>
+    <article class="kpi-card">
+        <span class="kpi-label">🧾 Pedidos cerrados</span>
+        <strong class="kpi-value" id="kpiPedidos">0</strong>
+        <span class="kpi-var" id="kpiPedidosVar">—</span>
+    </article>
+    <article class="kpi-card">
+        <span class="kpi-label">🎫 Ticket promedio</span>
+        <strong class="kpi-value" id="kpiTicket">$0</strong>
+        <span class="kpi-var" id="kpiTicketVar">—</span>
+    </article>
+    <article class="kpi-card">
+        <span class="kpi-label">📉 Food cost</span>
+        <strong class="kpi-value" id="kpiFC">0%</strong>
+        <span class="kpi-sub" id="kpiFCSub">$0 en insumos</span>
+    </article>
+    <article class="kpi-card kpi-destacada">
+        <span class="kpi-label">📈 Margen bruto</span>
+        <strong class="kpi-value" id="kpiMargen">0%</strong>
+        <span class="kpi-sub" id="kpiMargenSub">$0</span>
+        <span class="kpi-var" id="kpiMargenVar">—</span>
+    </article>
+</section>
+
+<section class="rep-grid-2">
+    <article class="rep-card">
+        <header class="rep-card-header"><h3>📈 Evolución de ventas</h3></header>
+        <div class="rep-card-body"><canvas id="chartVentas"></canvas></div>
+    </article>
+    <article class="rep-card">
+        <header class="rep-card-header"><h3>🕐 Ventas por hora</h3></header>
+        <div class="rep-card-body"><canvas id="chartHoras"></canvas></div>
+    </article>
+</section>
+
+<section class="rep-grid-2">
+    <article class="rep-card">
+        <header class="rep-card-header"><h3>🍔 Ventas por categoría</h3></header>
+        <div class="rep-card-body"><canvas id="chartCategorias"></canvas></div>
+    </article>
+    <article class="rep-card">
+        <header class="rep-card-header"><h3>💳 Métodos de pago</h3></header>
+        <div class="rep-card-body"><canvas id="chartPagos"></canvas></div>
+    </article>
+</section>
+
+<section class="rep-card">
+    <header class="rep-card-header">
+        <h3>🏆 Top productos del período</h3>
+        <span class="rep-hint">Ordenado por unidades vendidas</span>
+    </header>
+    <div class="rep-tabla-wrap">
+        <table class="rep-tabla">
+            <thead>
+                <tr>
+                    <th>#</th><th>Producto</th><th>Categoría</th>
+                    <th>Precio</th><th>Costo</th><th>Margen</th>
+                    <th>FC %</th><th>Uds</th><th>Ingresos</th>
+                </tr>
+            </thead>
+            <tbody id="tablaTopProductos"></tbody>
+        </table>
+    </div>
+</section>
+
+<section class="rep-card">
+    <header class="rep-card-header">
+        <h3>🎯 Rentabilidad por producto (matriz BCG)</h3>
+    </header>
+    <div class="bcg-grid" id="bcgGrid"></div>
+</section>
+
+<section class="rep-card">
+    <header class="rep-card-header"><h3>👨‍🍳 Ranking de meseros</h3></header>
+    <div class="rep-tabla-wrap">
+        <table class="rep-tabla">
+            <thead>
+                <tr><th>#</th><th>Mesero</th><th>Pedidos</th><th>Ventas</th><th>Ticket promedio</th></tr>
+            </thead>
+            <tbody id="tablaMeseros"></tbody>
+        </table>
+    </div>
+</section>
+
+<section class="rep-card" data-permiso="reportes.financiero">
+    <header class="rep-card-header"><h3>🏬 Ventas por sucursal</h3></header>
+    <div class="sucursales-grid" id="sucursalesGrid"></div>
+</section>
+
+{% endblock %}
+
+{% block footer_text %}Reportes{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/reportes.js') }}"></script>
+{% endblock %}

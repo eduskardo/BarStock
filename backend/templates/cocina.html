@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Monitor de Cocina | Proyecto Bar{% endblock %}
+
+{% block body_class %}cocina-body{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cocina.css') }}">
+{% endblock %}
+
+{% block navbar_extra %}
+<span class="estado-conexion" id="estadoConexion">
+    <span class="dot"></span> Conectando...
+</span>
+{% endblock %}
+
+{% block main_class %}cocina-layout{% endblock %}
+
+{% block content %}
+
+<section class="cocina-stats">
+    <div class="stat-card stat-pendiente">
+        <span class="stat-label">🕐 Pendientes</span>
+        <strong id="statPendientes">0</strong>
+    </div>
+    <div class="stat-card stat-preparando">
+        <span class="stat-label">🔥 En preparación</span>
+        <strong id="statPreparando">0</strong>
+    </div>
+    <div class="stat-card stat-listo">
+        <span class="stat-label">✅ Listos</span>
+        <strong id="statListos">0</strong>
+    </div>
+    <div class="stat-card stat-tiempo">
+        <span class="stat-label">⏱️ Tiempo promedio</span>
+        <strong id="statPromedio">0 min</strong>
+    </div>
+</section>
+
+<section class="cocina-toolbar">
+    <div class="filtros">
+        <button class="filtro-btn active" data-filtro="activos">📋 Activas</button>
+        <button class="filtro-btn" data-filtro="todas">📚 Todas (hoy)</button>
+        <button class="filtro-btn" data-filtro="urgentes">🚨 Urgentes (+15 min)</button>
+    </div>
+    <div class="cocina-orden">
+        <label for="ordenarPor">Ordenar por:</label>
+        <select id="ordenarPor">
+            <option value="hora">Hora de pedido</option>
+            <option value="mesa">Mesa</option>
+        </select>
+    </div>
+</section>
+
+<section class="kanban">
+    <div class="kanban-col" data-estado="pendiente">
+        <header class="kanban-col-header">
+            <h2>🕐 Pendientes</h2>
+            <span class="badge-col" id="badgePendientes">0</span>
+        </header>
+        <div class="kanban-col-body" id="colPendientes"></div>
+    </div>
+
+    <div class="kanban-col" data-estado="en_preparacion">
+        <header class="kanban-col-header">
+            <h2>🔥 En preparación</h2>
+            <span class="badge-col" id="badgePreparando">0</span>
+        </header>
+        <div class="kanban-col-body" id="colPreparando"></div>
+    </div>
+
+    <div class="kanban-col" data-estado="listo">
+        <header class="kanban-col-header">
+            <h2>✅ Listos para servir</h2>
+            <span class="badge-col" id="badgeListos">0</span>
+        </header>
+        <div class="kanban-col-body" id="colListos"></div>
+    </div>
+</section>
+
+<div class="alerta-nueva-comanda" id="alertaNuevaComanda">
+    🔔 ¡Nueva comanda recibida!
+</div>
+
+<div class="modal" id="modalComanda">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalComandaTitulo">Comanda #0</h2>
+            <button class="modal-close" id="cerrarModalComanda">&times;</button>
+        </div>
+        <div class="modal-body" id="modalComandaBody"></div>
+        <div class="modal-footer" id="modalComandaFooter"></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block footer_text %}Monitor de Cocina{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="{{ url_for('static', filename='js/cocina.js') }}"></script>
+{% endblock %}

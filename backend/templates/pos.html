@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Punto de Venta | Proyecto Bar{% endblock %}
+
+{% block body_class %}pos-body{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pos.css') }}">
+{% endblock %}
+
+{% block main_class %}pos-layout{% endblock %}
+
+{% block content %}
+
+<!-- Columna izquierda: carta -->
+<section class="pos-carta">
+    <div class="pos-header">
+        <div class="pos-mesa-info">
+            <span class="label">Mesa / Pedido:</span>
+            <strong id="mesaActiva">— Sin asignar —</strong>
+            <button class="btn-cambiar-mesa" id="btnCambiarMesa">Cambiar</button>
+        </div>
+        <div class="pos-buscador">
+            <input type="search" id="buscarProducto" placeholder="🔍 Buscar producto...">
+        </div>
+    </div>
+
+    <nav class="categorias" id="categoriasNav"></nav>
+    <div class="productos-grid" id="productosGrid"></div>
+</section>
+
+<!-- Columna derecha: carrito -->
+<aside class="pos-carrito" id="posCarrito">
+    <div class="carrito-header">
+        <h2>🧾 Pedido actual</h2>
+        <button class="btn-cerrar-carrito" id="btnCerrarCarrito">✕</button>
+    </div>
+    <div class="carrito-items" id="carritoItems">
+        <p class="carrito-vacio">Aún no hay productos.</p>
+    </div>
+    <div class="carrito-resumen">
+        <div class="linea-resumen">
+            <span>Subtotal</span>
+            <span id="subtotal">₲0</span>
+        </div>
+        <div class="linea-resumen">
+            <span>IVA (10% incluido)</span>
+            <span id="impuesto">₲0</span>
+        </div>
+        <div class="linea-resumen total">
+            <span>TOTAL</span>
+            <span id="total">₲0</span>
+        </div>
+    </div>
+    <div class="carrito-acciones">
+        <button class="btn btn-secondary" id="btnLimpiarCarrito">🗑️ Limpiar</button>
+        <button class="btn btn-primary" id="btnEnviarCocina">👨‍🍳 Enviar a cocina</button>
+        <button class="btn btn-success" id="btnCobrar">💰 Cobrar</button>
+    </div>
+</aside>
+
+<!-- Botón flotante carrito (móvil) -->
+<button class="btn-carrito-flotante" id="btnCarritoFlotante">
+    🛒 <span class="badge-carrito" id="badgeCarrito">0</span>
+</button>
+
+<!-- Modales (producto, mesa, cobro) -->
+<div class="modal" id="modalProducto">
+    <div class="modal-content modal-producto">
+        <div class="modal-header">
+            <h2 id="modalProdNombre">Producto</h2>
+            <button class="modal-close" id="cerrarModalProducto">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-prod-precio" id="modalProdPrecio">₲0</p>
+            <div class="cantidad-control">
+                <button class="btn-cant" data-action="menos">−</button>
+                <input type="number" id="modalCantidad" value="1" min="1">
+                <button class="btn-cant" data-action="mas">+</button>
+            </div>
+            <label for="modalNotas">Notas / Modificadores</label>
+            <textarea id="modalNotas" rows="2"
+                      placeholder="Ej: sin cebolla, término medio..."></textarea>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelarProducto">Cancelar</button>
+            <button class="btn btn-primary" id="agregarProducto">Agregar</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="modalMesa">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Seleccionar mesa</h2>
+            <button class="modal-close" id="cerrarModalMesa">&times;</button>
+        </div>
+        <div class="modal-body" id="modalMesaBody"></div>
+    </div>
+</div>
+
+<div class="modal" id="modalCobro">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>💳 Cobrar pedido</h2>
+            <button class="modal-close" id="cerrarModalCobro">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="total-cobro">
+                <span>Total a cobrar</span>
+                <strong id="totalCobro">₲0</strong>
+            </div>
+            <label>Método de pago</label>
+            <div class="metodos-pago" id="metodosPago">
+                <button class="metodo active" data-metodo="efectivo">💵 Efectivo</button>
+                <button class="metodo" data-metodo="tarjeta">💳 Tarjeta</button>
+                <button class="metodo" data-metodo="transferencia">📱 Transferencia</button>
+            </div>
+            <label for="montoRecibido">Monto recibido</label>
+            <input type="number" id="montoRecibido" min="0" step="100" placeholder="0">
+            <div class="cambio-cobro">
+                <span>Cambio</span>
+                <strong id="cambioCobro">₲0</strong>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelarCobro">Cancelar</button>
+            <button class="btn btn-success" id="confirmarCobro">✅ Confirmar cobro</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Área oculta para impresión de factura (80mm) -->
+<div id="ticket-print" class="ticket-print">
+    <!-- El contenido se llena con JS -->
+</div>
+<script src="{{ url_for('static', filename='js/pos.js') }}"></script>
+{% endblock %}

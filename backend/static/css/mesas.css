@@ -1,0 +1,95 @@
+.mesas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+.mesa-card {
+    background: var(--color-surface);
+    border-radius: var(--radius);
+    padding: 1rem;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    border-left: 5px solid var(--color-info);
+    transition: transform var(--transition), box-shadow var(--transition);
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+    position: relative;
+}
+
+.mesa-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Estados */
+.mesa-card[data-estado="ocupada"]   { border-left-color: var(--color-danger);  }
+.mesa-card[data-estado="pagada"]    { border-left-color: var(--color-success); opacity: .85; }
+.mesa-card[data-estado="reservada"] { border-left-color: var(--color-warning); }
+
+.mesa-card .mesa-numero {
+    font-size: 1.5rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.mesa-card .estado-tag {
+    font-size: .7rem;
+    padding: .2rem .55rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: .04em;
+}
+
+.mesa-card[data-estado="ocupada"]   .estado-tag { background: #FEE2E2; color: #991B1B; }
+.mesa-card[data-estado="pagada"]    .estado-tag { background: #D1FAE5; color: #065F46; }
+.mesa-card[data-estado="reservada"] .estado-tag { background: #FEF3C7; color: #92400E; }
+.mesa-card[data-estado="libre"]     .estado-tag { background: #DBEAFE; color: #1E40AF; }
+
+.mesa-card .mesa-info {
+    font-size: .85rem;
+    color: var(--color-text-muted);
+    display: flex;
+    justify-content: space-between;
+}
+
+.mesa-card .mesa-total {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    margin-top: .25rem;
+}
+
+/* Detalle dentro del modal */
+.detalle-item {
+    display: flex;
+    justify-content: space-between;
+    padding: .5rem 0;
+    border-bottom: 1px dashed var(--color-border);
+    font-size: .92rem;
+}
+
+.detalle-item:last-child { border-bottom: none; }
+
+.detalle-total {
+    display: flex;
+    justify-content: space-between;
+    padding-top: .75rem;
+    margin-top: .5rem;
+    border-top: 2px solid var(--color-border);
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+@media (max-width: 600px) {
+    .mesas-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: .75rem;
+    }
+    .mesa-card { padding: .85rem; }
+    .mesa-card .mesa-numero { font-size: 1.25rem; }
+}

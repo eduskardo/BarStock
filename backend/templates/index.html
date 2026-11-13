@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Mesas | Proyecto Bar{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mesas.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<section class="page-header">
+    <h1>Gestión de Mesas</h1>
+
+    <div class="filtros">
+        <button class="filtro-btn active" data-filtro="todas">
+            Todas <span class="badge" id="countTodas">0</span>
+        </button>
+        <button class="filtro-btn" data-filtro="abiertas">
+            Abiertas <span class="badge" id="countAbiertas">0</span>
+        </button>
+        <button class="filtro-btn" data-filtro="pagadas">
+            Pagadas <span class="badge" id="countPagadas">0</span>
+        </button>
+        <button class="filtro-btn" data-filtro="reservadas">
+            Reservadas <span class="badge" id="countReservadas">0</span>
+        </button>
+    </div>
+
+    <input type="search" id="buscadorMesas" placeholder="🔍 Buscar mesa...">
+</section>
+
+<section class="mesas-grid" id="mesasGrid"></section>
+
+<!-- Modal detalle de consumo -->
+<div class="modal" id="modalDetalle">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitulo">Mesa 0</h2>
+            <button class="modal-close" id="cerrarModal">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnImprimir">🖨️ Imprimir</button>
+            <button class="btn btn-primary" id="btnCobrar">💰 Cobrar cuenta</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/mesas.js') }}"></script>
+{% endblock %}

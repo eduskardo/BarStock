@@ -1,0 +1,140 @@
+.usuarios-tabla-wrap {
+    background: var(--color-surface);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    overflow-x: auto;
+}
+
+.usuarios-tabla {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 720px;
+}
+
+.usuarios-tabla thead {
+    background: #F3F4F6;
+}
+
+.usuarios-tabla th {
+    text-align: left;
+    padding: .85rem 1rem;
+    font-size: .82rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--color-text-muted);
+    font-weight: 700;
+}
+
+.usuarios-tabla td {
+    padding: .9rem 1rem;
+    border-top: 1px solid var(--color-border);
+    font-size: .9rem;
+    vertical-align: middle;
+}
+
+.usuarios-tabla tr:hover td { background: #FAFAFA; }
+
+.tag-rol {
+    display: inline-block;
+    background: #DBEAFE;
+    color: #1E40AF;
+    font-size: .72rem;
+    padding: .15rem .5rem;
+    border-radius: 999px;
+    font-weight: 700;
+    margin-right: .25rem;
+    text-transform: uppercase;
+}
+
+.estado-pill {
+    padding: .25rem .65rem;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 700;
+}
+
+.estado-pill.activo    { background: #D1FAE5; color: #065F46; }
+.estado-pill.inactivo  { background: #FEE2E2; color: #991B1B; }
+
+.acciones-col button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: .25rem .4rem;
+    transition: var(--transition);
+}
+
+.acciones-col button:hover { transform: scale(1.15); }
+
+/* Modal */
+.form-row    { margin-bottom: 1rem; }
+.form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.form-group label {
+    display: block;
+    font-size: .82rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    margin-bottom: .35rem;
+}
+.form-group input {
+    width: 100%;
+    padding: .7rem .9rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    outline: none;
+    font-size: .9rem;
+    transition: var(--transition);
+}
+.form-group input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(200,16,46,.08);
+}
+
+.roles-checkbox {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin: .35rem 0 1rem;
+}
+
+.rol-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .45rem .85rem;
+    border-radius: 999px;
+    border: 1.5px solid var(--color-border);
+    background: var(--color-surface);
+    cursor: pointer;
+    font-size: .85rem;
+    font-weight: 600;
+    transition: var(--transition);
+    user-select: none;
+}
+
+.rol-chip:hover { border-color: var(--color-primary); }
+
+.rol-chip.activo {
+    background: var(--color-primary);
+    color: #fff;
+    border-color: var(--color-primary);
+}
+
+.chk-activo {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .9rem;
+    cursor: pointer;
+}
+
+@media (max-width: 600px) {
+    .form-row-2 { grid-template-columns: 1fr; }
+}

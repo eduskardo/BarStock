@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Usuarios | Proyecto Bar{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/usuarios.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<section class="page-header">
+    <h1>Usuarios y Roles</h1>
+    <button class="btn btn-primary" id="btnNuevoUsuario" data-permiso="usuarios.crear">
+        ➕ Nuevo usuario
+    </button>
+</section>
+
+<section class="usuarios-tabla-wrap">
+    <table class="usuarios-tabla">
+        <thead>
+            <tr>
+                <th>Nombre</th><th>Usuario</th><th>Email</th>
+                <th>Roles</th><th>Estado</th><th>Último login</th><th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="tablaUsuariosBody"></tbody>
+    </table>
+</section>
+
+<div class="modal" id="modalUsuario">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalUsuarioTitulo">Nuevo usuario</h2>
+            <button class="modal-close" id="cerrarModalUsuario">&times;</button>
+        </div>
+        <form class="modal-body" id="formUsuario">
+            <input type="hidden" id="userId">
+            <div class="form-row">
+                <div class="form-group"><label>Nombre completo</label><input type="text" id="uNombre" required></div>
+            </div>
+            <div class="form-row-2">
+                <div class="form-group"><label>Usuario</label><input type="text" id="uUsername" required></div>
+                <div class="form-group"><label>Email</label><input type="email" id="uEmail" required></div>
+            </div>
+            <div class="form-row-2">
+                <div class="form-group"><label>Teléfono</label><input type="tel" id="uTelefono"></div>
+                <div class="form-group"><label>Contraseña</label><input type="password" id="uPassword"></div>
+            </div>
+            <label>Roles</label>
+            <div class="roles-checkbox" id="rolesCheckbox"></div>
+            <div class="form-row">
+                <label class="chk-activo"><input type="checkbox" id="uActivo" checked> Activo</label>
+            </div>
+        </form>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelarUsuario">Cancelar</button>
+            <button class="btn btn-primary" id="guardarUsuario">Guardar</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block footer_text %}Administración{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/usuarios.js') }}"></script>
+{% endblock %}

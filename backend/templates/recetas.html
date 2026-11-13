@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Recetas | BARSTOCK{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/recetas.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="recetas-layout">
+    
+    <!-- Columna Izquierda: Lista de Productos -->
+    <aside class="recetas-sidebar">
+        <h2>🍽️ Platos</h2>
+        <input type="search" id="buscarPlato" placeholder="🔍 Buscar plato...">
+        <ul id="listaPlatos" class="platos-list">
+            <!-- Se llena con JS -->
+        </ul>
+    </aside>
+
+    <!-- Columna Derecha: Editor de Receta -->
+    <main class="recetas-editor">
+        <div id="editorVacio" class="empty-state">
+            <h2>👨‍🍳 Selecciona un plato</h2>
+            <p>Elige un plato de la lista para ver y editar sus ingredientes.</p>
+        </div>
+
+        <div id="editorContenido" style="display: none;">
+            <header class="editor-header">
+                <div>
+                    <h2 id="tituloPlato">Nombre del Plato</h2>
+                    <p id="categoriaPlato" class="text-muted">Categoría</p>
+                </div>
+                <div class="costo-total-box">
+                    <span>Costo de Receta</span>
+                    <strong id="costoTotalReceta">₲ 0</strong>
+                </div>
+            </header>
+
+            <div class="agregar-insumo-box">
+                <h3>Agregar Insumo</h3>
+                <form id="formInsumo" class="form-inline">
+                    <select id="selectInsumo" required>
+                        <option value="">Seleccionar insumo...</option>
+                    </select>
+                    <input type="number" id="inputCantidad" step="0.01" min="0" placeholder="Cantidad" required>
+                    <span id="unidadInsumo" class="unidad-label">-</span>
+                    <button type="submit" class="btn btn-primary">➕ Agregar</button>
+                </form>
+            </div>
+
+            <table class="tabla-receta">
+                <thead>
+                    <tr>
+                        <th>Insumo</th>
+                        <th>Cantidad</th>
+                        <th>Costo Unit.</th>
+                        <th>Costo Total</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaIngredientes">
+                    <!-- Se llena con JS -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/recetas.js') }}"></script>
+{% endblock %}

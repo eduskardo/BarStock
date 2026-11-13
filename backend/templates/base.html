@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}BARSTOCK{% endblock %}</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+
+    <!-- =NAVBAR = -->
+    <header class="navbar">
+        <div class="navbar-container">
+            <a href="{{ url_for('page_index') }}" class="navbar-brand">
+                <img src="{{ url_for('static', filename='assets/logo.jpg') }}"
+                     alt="Logo" class="logo">
+                <span class="brand-name">BARSTOCK</span>
+            </a>
+
+            <button class="hamburger" id="hamburger" aria-label="Menú">
+                <span></span><span></span><span></span>
+            </button>
+
+            <nav class="navbar-menu" id="navbarMenu">
+                <ul>
+                    <li>
+                        <a href="{{ url_for('page_index') }}"
+                           class="{{ 'active' if active_page == 'index' else '' }}">
+                            🍽️ Mesas
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('page_pos') }}"
+                           class="{{ 'active' if active_page == 'pos' else '' }}">
+                            🧾 Punto de Venta
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('page_cocina') }}"
+                           class="{{ 'active' if active_page == 'cocina' else '' }}">
+                            👨‍🍳 Cocina
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('page_inventario') }}"
+                           class="{{ 'active' if active_page == 'inventario' else '' }}">
+                            📦 Inventario
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('page_recetas') }}" class="{{ 'active' if active_page == 'recetas' else '' }}">
+                            📖 Recetas
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('page_reportes') }}"
+                           class="{{ 'active' if active_page == 'reportes' else '' }}">
+                            📊 Reportes
+                        </a>
+                    </li>
+                    {% if current_user and 'usuarios.ver' in current_user.permisos %}
+                    <li>
+                        <a href="{{ url_for('page_usuarios') }}"
+                           class="{{ 'active' if active_page == 'usuarios' else '' }}">
+                            👥 Usuarios
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+
+                <div class="navbar-user">
+                    {# Mostrar estado de conexión solo en páginas que lo usan #}
+                    {% block navbar_extra %}{% endblock %}
+
+                    <span id="userInfo">
+                        {% if current_user %}
+                            {{ current_user.nombre }} · {{ current_user.roles[0] if current_user.roles else 'usuario' }}
+                        {% else %}
+                            Invitado
+                        {% endif %}
+                    </span>
+                    <button id="logoutBtn" class="btn-logout">Salir</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- ============ CONTENIDO ============ -->
+    <main class="{% block main_class %}container{% endblock %}">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- ============ FOOTER ============ -->
+    <footer class="footer">
+        <p>&copy; 2026 BARSTOCK · {% block footer_text %}Sistema integral para bares y restaurantes{% endblock %}</p>
+        <p>Desarrollado por EAPC. Versión: 0.7.0</p>
+    </footer>
+
+    <!-- ============ URLs GLOBALES PARA JS ============ -->
+    <script>
+        window.APP_URLS = {
+            login:      "{{ url_for('page_login') }}",
+            index:      "{{ url_for('page_index') }}",
+            pos:        "{{ url_for('page_pos') }}",
+            cocina:     "{{ url_for('page_cocina') }}",
+            inventario: "{{ url_for('page_inventario') }}",
+            reportes:   "{{ url_for('page_reportes') }}",
+            usuarios:   "{{ url_for('page_usuarios') }}",
+        };
+    </script>
+
+    <!-- JS comunes -->
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+    <!-- JS específicos por página -->
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

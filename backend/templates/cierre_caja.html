@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Cierre de Caja | BARSTOCK{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reportes.css') }}">
+<style>
+    /* Estilos específicos para la vista de cierre y su impresión */
+    .cierre-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+    .filtro-fecha { display: flex; gap: 10px; align-items: center; }
+    
+    .resumen-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .resumen-card { background: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 5px solid #ccc; }
+    .resumen-card.efectivo { border-color: #10B981; }
+    .resumen-card.tarjeta { border-color: #3B82F6; }
+    .resumen-card.transf { border-color: #F59E0B; }
+    .resumen-card.total { border-color: #C8102E; background: #FEF2F2; }
+    
+    .resumen-card h3 { font-size: 0.85rem; color: #6B7280; text-transform: uppercase; margin-bottom: 0.5rem; }
+    .resumen-card p { font-size: 1.8rem; font-weight: bold; color: #111827; margin: 0; }
+
+    /* Estilos para impresión térmica */
+    @media print {
+        body * { visibility: hidden; }
+        #print-area, #print-area * { visibility: visible; }
+        #print-area { position: absolute; left: 0; top: 0; width: 100%; max-width: 80mm; font-family: 'Courier New', monospace; }
+        .no-print { display: none !important; }
+        .print-only { display: block !important; }
+        .resumen-grid { grid-template-columns: 1fr; gap: 0.5rem; }
+        .resumen-card { box-shadow: none; border: 1px solid #000; padding: 5px; border-left: none; }
+        .resumen-card p { font-size: 1.2rem; }
+        .rep-tabla th, .rep-tabla td { font-size: 11px; padding: 4px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="no-print">
+    <div class="cierre-header">
+        <h1>🧾 Cierre de Caja Diario</h1>
+        <div class="filtro-fecha">
+            <input type="date" id="fechaCierre" class="form-control">
+            <button class="btn btn-primary" id="btnBuscar">🔎 Consultar</button>
+            <button class="btn btn-secondary" id="btnImprimir">🖨️ Imprimir Cierre</button>
+        </div>
+    </div>
+</div>
+
+<div id="print-area">
+    <div class="print-only" style="display: none; text-align: center; margin-bottom: 10px;">
+        <h2 style="margin:0; font-size: 18px;">BARSTOCK</h2>
+        <p style="margin:2px 0; font-size: 12px;">RUC: 80012345-6</p>
+        <h3 style="margin:5px 0; font-size: 14px;">CIERRE DE CAJA</h3>
+        <p style="margin:2px 0; font-size: 12px;">Fecha: <span id="printFecha"></span></p>
+    </div>
+
+    <div class="resumen-grid">
+        <div class="resumen-card efectivo">
+            <h3>💵 Efectivo</h3>
+            <p id="resEfectivo">₲ 0</p>
+        </div>
+        <div class="resumen-card tarjeta">
+            <h3>💳 Tarjeta</h3>
+            <p id="resTarjeta">₲ 0</p>
+        </div>
+        <div class="resumen-card transf">
+            <h3>📱 Transferencia</h3>
+            <p id="resTransf">₲ 0</p>
+        </div>
+        <div class="resumen-card total">
+            <h3>💰 Total en Caja</h3>
+            <p id="resTotal">₲ 0</p>
+        </div>
+    </div>
+
+    <div class="rep-card">
+        <header class="rep-card-header">
+            <h3>Detalle de Transacciones</h3>
+            <span class="rep-hint">Total pagos: <span id="resCantidad">0</span></span>
+        </header>
+        <div class="rep-tabla-wrap">
+            <table class="rep-tabla">
+                <thead>
+                    <tr>
+                        <th>Hora</th>
+                        <th>Factura</th>
+                        <th>Mesa</th>
+                        <th>Método</th>
+                        <th class="num">Monto</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaCierre"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="print-only" style="display: none; margin-top: 30px; text-align: center;">
+        <p style="font-size: 11px;">_____________________________</p>
+        <p style="font-size: 11px;">Firma del Cajero / Gerente</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/cierre_caja.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}Inventario | Proyecto Bar{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/inventario.css') }}">
+{% endblock %}
+
+{% block navbar_extra %}
+<span class="estado-conexion" id="estadoConexion">
+    <span class="dot"></span> Conectando...
+</span>
+{% endblock %}
+
+{% block content %}
+
+<section class="inv-stats">
+    <div class="stat-card">
+        <span class="stat-label">🧾 Insumos activos</span>
+        <strong id="statTotal">0</strong>
+    </div>
+    <div class="stat-card stat-alerta">
+        <span class="stat-label">⚠️ Bajo mínimo</span>
+        <strong id="statBajo">0</strong>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">💰 Valor del stock</span>
+        <strong id="statValor">$0</strong>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">📈 Mov. últimos 30 días</span>
+        <strong id="statMovs">0</strong>
+    </div>
+</section>
+
+<nav class="inv-tabs">
+    <button class="tab-btn active" data-tab="insumos">📦 Insumos</button>
+    <button class="tab-btn" data-tab="movimientos">📊 Kardex / Movimientos</button>
+    <button class="tab-btn" data-tab="alertas">⚠️ Alertas de stock</button>
+</nav>
+
+<section class="inv-tab" data-tab-content="insumos">
+    <div class="inv-toolbar">
+        <input type="search" id="buscarInsumo" placeholder="🔍 Buscar insumo...">
+        <select id="filtroCategoria">
+            <option value="">Todas las categorías</option>
+        </select>
+        <label class="chk-bajo">
+            <input type="checkbox" id="soloBajo"> Solo bajo mínimo
+        </label>
+        <button class="btn btn-primary" id="btnNuevoInsumo" data-permiso="inventario.ajuste">
+            ➕ Nuevo insumo
+        </button>
+    </div>
+
+    <div class="inv-tabla-wrap">
+        <table class="inv-tabla">
+            <thead>
+                <tr>
+                    <th>Código</th><th>Insumo</th><th>Categoría</th>
+                    <th>Stock</th><th>Mínimo</th><th>Costo unit.</th>
+                    <th>Valor</th><th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tablaInsumos"></tbody>
+        </table>
+    </div>
+</section>
+
+<section class="inv-tab" data-tab-content="movimientos" hidden>
+    <div class="inv-toolbar">
+        <select id="filtroInsumoMov"><option value="">Todos los insumos</option></select>
+        <select id="filtroTipoMov">
+            <option value="">Todos los tipos</option>
+            <option value="ingreso">Ingreso</option>
+            <option value="egreso">Egreso (venta)</option>
+            <option value="ajuste_pos">Ajuste (+)</option>
+            <option value="ajuste_neg">Ajuste (−)</option>
+            <option value="merma">Merma</option>
+        </select>
+        <input type="date" id="filtroDesde">
+        <input type="date" id="filtroHasta">
+        <button class="btn btn-secondary" id="btnRecargarMovs">🔄 Actualizar</button>
+        <button class="btn btn-primary" id="btnMovimiento"
+                data-permiso="inventario.movimiento">➕ Movimiento</button>
+    </div>
+
+    <div class="inv-tabla-wrap">
+        <table class="inv-tabla">
+            <thead>
+                <tr>
+                    <th>Fecha</th><th>Insumo</th><th>Tipo</th>
+                    <th>Cantidad</th><th>Antes</th><th>Después</th>
+                    <th>Costo</th><th>Motivo</th><th>Usuario</th>
+                </tr>
+            </thead>
+            <tbody id="tablaMovimientos"></tbody>
+        </table>
+    </div>
+</section>
+
+<section class="inv-tab" data-tab-content="alertas" hidden>
+    <div class="alertas-grid" id="alertasGrid"></div>
+</section>
+
+<!-- Modales -->
+<div class="modal" id="modalInsumo">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalInsumoTitulo">Nuevo insumo</h2>
+            <button class="modal-close" id="cerrarModalInsumo">&times;</button>
+        </div>
+        <form class="modal-body" id="formInsumo">
+            <input type="hidden" id="insumoId">
+            <div class="form-row-2">
+                <div class="form-group"><label>Código / SKU</label><input type="text" id="iCodigo"></div>
+                <div class="form-group"><label>Nombre *</label><input type="text" id="iNombre" required></div>
+            </div>
+            <div class="form-row-2">
+                <div class="form-group"><label>Categoría</label><input type="text" id="iCategoria"></div>
+                <div class="form-group">
+                    <label>Unidad *</label>
+                    <select id="iUnidad" required>
+                        <option value="g">g</option><option value="kg">kg</option>
+                        <option value="ml">ml</option><option value="l">l</option>
+                        <option value="und">und</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row-2">
+                <div class="form-group"><label>Costo unitario</label><input type="number" id="iCosto" value="0" step="0.01"></div>
+                <div class="form-group"><label>Stock mínimo</label><input type="number" id="iMinimo" value="0" step="0.01"></div>
+            </div>
+            <div class="form-row-2">
+                <div class="form-group"><label>Stock máximo</label><input type="number" id="iMaximo" value="0" step="0.01"></div>
+                <div class="form-group">
+                    <label class="chk-activo"><input type="checkbox" id="iPerecedero"> Perecedero</label>
+                </div>
+            </div>
+        </form>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelarInsumo">Cancelar</button>
+            <button class="btn btn-primary" id="guardarInsumo">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="modalMovimiento">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Registrar movimiento</h2>
+            <button class="modal-close" id="cerrarModalMov">&times;</button>
+        </div>
+        <form class="modal-body" id="formMovimiento">
+            <div class="form-row">
+                <label>Insumo *</label>
+                <select id="mInsumo" required></select>
+            </div>
+            <div class="form-row-2">
+                <div class="form-group">
+                    <label>Tipo *</label>
+                    <select id="mTipo" required>
+                        <option value="ingreso">Ingreso (compra)</option>
+                        <option value="ajuste_pos">Ajuste (+)</option>
+                        <option value="ajuste_neg">Ajuste (−)</option>
+                        <option value="merma">Merma / pérdida</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Cantidad *</label><input type="number" id="mCantidad" step="0.001" required></div>
+            </div>
+            <div class="form-row-2">
+                <div class="form-group"><label>Costo unitario</label><input type="number" id="mCosto" value="0" step="0.01"></div>
+                <div class="form-group"><label>N° Factura</label><input type="text" id="mFactura"></div>
+            </div>
+            <div class="form-row"><label>Motivo</label><input type="text" id="mMotivo"></div>
+        </form>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelarMov">Cancelar</button>
+            <button class="btn btn-primary" id="guardarMov">Registrar</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block footer_text %}Inventario{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="{{ url_for('static', filename='js/inventario.js') }}"></script>
+{% endblock %}
