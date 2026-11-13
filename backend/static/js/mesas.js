@@ -229,3 +229,15 @@ async function liberarMesa() {
         Utils.mostrarToast(e.message || 'Error al liberar mesa', 'error');
     }
 }
+
+async function abrirMesa() {
+    if (!mesaSeleccionada) return;
+    try {
+        await API.post(`/pedidos/mesa/${mesaSeleccionada}/abrir`, {});
+        Utils.mostrarToast('Mesa abierta', 'success');
+        document.getElementById('modalDetalle').classList.remove('open');
+        cargarMesas();
+    } catch (e) {
+        Utils.mostrarToast(e.message || 'Error al abrir mesa', 'error');
+    }
+}

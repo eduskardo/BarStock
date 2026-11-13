@@ -419,8 +419,9 @@ async function guardarMovimiento() {
 function initSocket() {
     const elEstado = document.getElementById('estadoConexion');
 
-    INV.socket = io('http://localhost:5000', {
+    INV.socket = io({
         transports: ['websocket'],
+        auth: (cb) => cb({ token: Auth.getToken() }),
     });
 
     INV.socket.on('connect', () => {

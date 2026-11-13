@@ -1,72 +1,73 @@
 from flask import Blueprint, jsonify, request, g
 from models import db
 from models.pedido import Pedido
-from models.mesa import Mesa
 from services.inventario_service import descontar_por_pedido
+from utils.auth_decorators import requiere_permiso
 
 cocina_bp = Blueprint('cocina', __name__)
 
+ESTADOS_ACTIVOS = ['pendiente', 'en_preparacion', 'listo']
 
-# ============================================================
-#  LISTAR COMANDAS ACTIVAS
-# ============================================================
+# Transiciones permitidas (evita saltos raros y doble descuento de stock)
+TRANSICIONES = {
+    'pendiente':      {'en_preparacion'},
+    'en_preparacion': {'listo'},
+    'listo':          {'servido'},
+    'servido':        set(),
+}
+
+
 @cocina_bp.route('/comandas', methods=['GET'])
+@requiere_permiso('cocina.ver')
 def listar_comandas():
-    """
-    Devuelve las comandas activas para el monitor de cocina.
-    Filtra por estados que aún no han sido servidos.
-    """
-    estados_activos = ['pendiente', 'en_preparacion', 'listo']
+    q = Pedido.query.filter(
+        Pedido.empresa_id == g.usuario.empresa_id,
+        Pedido.estado.in_(ESTADOS_ACTIVOS),
+    )
+    if g.usuario.sucursal_id:
+        q = q.filter(Pedido.sucursal_id == g.usuario.sucursal_id)
 
-    pedidos = Pedido.query.filter(
-        Pedido.estado.in_(estados_activos)
-    ).order_by(Pedido.created_at.asc()).all()
-
+    pedidos = q.order_by(Pedido.created_at.asc()).all()
     return jsonify([p.to_dict_cocina() for p in pedidos])
 
 
-# ============================================================
-#  CAMBIAR ESTADO DE UNA COMANDA
-# ============================================================
 @cocina_bp.route('/comandas/<int:pedido_id>/estado', methods=['POST'])
+@requiere_permiso('cocina.estado')
 def cambiar_estado(pedido_id):
     from app import socketio
     from socket_events import emitir_comanda_actualizada
 
-    pedido = Pedido.query.get_or_404(pedido_id)
-    data = request.get_json() or {}
-    nuevo_estado = data.get('estado')
+    pedido = Pedido.query.filter_by(
+        id=pedido_id, empresa_id=g.usuario.empresa_id
+    ).first_or_404()
 
-    estados_validos = ['pendiente', 'en_preparacion', 'listo', 'servido']
-    if nuevo_estado not in estados_validos:
+    nuevo_estado = (request.get_json() or {}).get('estado')
+    if nuevo_estado not in TRANSICIONES:
         return jsonify({'error': 'Estado inválido'}), 400
 
     estado_anterior = pedido.estado
+    if nuevo_estado == estado_anterior:
+        return jsonify(pedido.to_dict_cocina())   # idempotente
+    if nuevo_estado not in TRANSICIONES.get(estado_anterior, set()):
+        return jsonify({
+            'error': f'No se puede pasar de {estado_anterior} a {nuevo_estado}'
+        }), 409
+
     pedido.estado = nuevo_estado
+    db.session.commit()
 
-    # 🔥 Si pasa a "servido" → descontar inventario
-    if nuevo_estado == 'servido' and estado_anterior != 'servido':
-        db.session.commit()
-
-        # Descontar insumos por receta
-        usuario_id = getattr(g, 'usuario', None)
-        usuario_id = usuario_id.id if usuario_id else None
-
+    if nuevo_estado == 'servido':
         try:
             resultado = descontar_por_pedido(
-                pedido,
-                usuario_id=usuario_id,
-                socketio=socketio,
+                pedido, usuario_id=g.usuario.id, socketio=socketio
             )
             if not resultado['ok']:
-                print(f'⚠️ No se pudo descontar inventario: '
-                      f'{resultado.get("error")}')
+                print(f'⚠️ No se pudo descontar inventario: {resultado.get("error")}')
         except Exception as e:
+            db.session.rollback()
             print(f'❌ Error al descontar inventario: {e}')
-    else:
-        db.session.commit()
 
-    # Notificar a las pantallas de cocina
-    emitir_comanda_actualizada(socketio, pedido.to_dict_cocina())
-
+    emitir_comanda_actualizada(
+        socketio, pedido.to_dict_cocina(), pedido.empresa_id
+    )
     return jsonify(pedido.to_dict_cocina())

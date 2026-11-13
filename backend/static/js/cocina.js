@@ -43,9 +43,9 @@ document.addEventListener('DOMContentLoaded', () => {
 function initSocket() {
     const elEstado = document.getElementById('estadoConexion');
 
-    COCINA.socket = io('http://localhost:5000', {
+    COCINA.socket = io({
         transports: ['websocket'],
-        withCredentials: true,
+        auth: (cb) => cb({ token: Auth.getToken() }),
     });
 
     COCINA.socket.on('connect', () => {
@@ -83,19 +83,6 @@ function initSocket() {
         COCINA.comandas = COCINA.comandas.filter(c => c.id !== id);
         renderKanban();
     });
-}
-
-/* ------------------------------------------------------------
-   CARGA INICIAL REST
-   ------------------------------------------------------------ */
-async function cargarComandas() {
-    try {
-        const data = await API.get('/cocina/comandas');
-        COCINA.comandas = data;
-    } catch (e) {
-        COCINA.comandas = getComandasDemo();
-    }
-    renderKanban();
 }
 
 /* ------------------------------------------------------------
@@ -477,58 +464,12 @@ function reproducirSonido() {
     }
 }
 
-/* ------------------------------------------------------------
-   DATOS DEMO
-   ------------------------------------------------------------ */
-function getComandasDemo() {
-    const ahora = Date.now();
-    return [
-        {
-            id: 101, mesa_numero: 3, mesero: 'Ana', estado: 'pendiente',
-            hora_pedido: new Date(ahora - 3 * 60000).toISOString(),
-            items: [
-                { cantidad: 1, nombre: 'Lomo al trapo',      notas: 'Término medio' },
-                { cantidad: 2, nombre: 'Limonada de coco',   notas: '' },
-            ],
-        },
-        {
-            id: 102, mesa_numero: 5, mesero: 'Luis', estado: 'pendiente',
-            hora_pedido: new Date(ahora - 10 * 60000).toISOString(),
-            items: [
-                { cantidad: 2, nombre: 'Ceviche mixto',      notas: 'Sin ají' },
-                { cantidad: 1, nombre: 'Pasta carbonara',    notas: '' },
-            ],
-        },
-        {
-            id: 103, mesa_numero: 7, mesero: 'Carla', estado: 'en_preparacion',
-            hora_pedido: new Date(ahora - 14 * 60000).toISOString(),
-            items: [
-                { cantidad: 1, nombre: 'Salmón grillé',      notas: 'Poco cocido' },
-                { cantidad: 3, nombre: 'Cerveza artesanal',  notas: '' },
-            ],
-        },
-        {
-            id: 104, mesa_numero: 2, mesero: 'Ana', estado: 'en_preparacion',
-            hora_pedido: new Date(ahora - 6 * 60000).toISOString(),
-            items: [
-                { cantidad: 1, nombre: 'Punta de anca',      notas: 'Tres cuartos' },
-                { cantidad: 1, nombre: 'Brownie con helado', notas: '' },
-            ],
-        },
-        {
-            id: 105, mesa_numero: 9, mesero: 'Luis', estado: 'listo',
-            hora_pedido: new Date(ahora - 20 * 60000).toISOString(),
-            items: [
-                { cantidad: 1, nombre: 'Cazuela de mariscos', notas: '' },
-            ],
-        },
-        {
-            id: 106, mesa_numero: 1, mesero: 'Carla', estado: 'listo',
-            hora_pedido: new Date(ahora - 4 * 60000).toISOString(),
-            items: [
-                { cantidad: 2, nombre: 'Carpaccio de res',    notas: '' },
-                { cantidad: 2, nombre: 'Jugo natural',        notas: 'Sin azúcar' },
-            ],
-        },
-    ];
+async function cargarComandas() {
+    try {
+        COCINA.comandas = await API.get('/cocina/comandas');
+    } catch (e) {
+        COCINA.comandas = [];
+        Utils.mostrarToast(e.message || 'Error al cargar comandas', 'error');
+    }
+    renderKanban();
 }

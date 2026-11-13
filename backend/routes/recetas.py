@@ -8,9 +8,15 @@ from utils.auth_decorators import requiere_permiso
 recetas_bp = Blueprint('recetas', __name__)
 
 # Obtener la receta de un producto
+def _producto_propio(pid):
+    return Producto.query.filter_by(
+        id=pid, empresa_id=g.usuario.empresa_id
+    ).first_or_404()
+
 @recetas_bp.route('/producto/<int:pid>', methods=['GET'])
 @requiere_permiso('inventario.ver')
 def obtener_receta(pid):
+    _producto_propio(pid)
     recetas = Receta.query.filter_by(producto_id=pid).all()
     return jsonify([r.to_dict() for r in recetas])
 
@@ -52,7 +58,11 @@ def agregar_insumo(pid):
 @recetas_bp.route('/<int:rid>', methods=['DELETE'])
 @requiere_permiso('inventario.ajuste')
 def eliminar_insumo(rid):
-    receta = Receta.query.get_or_404(rid)
+    receta = (Receta.query
+              .join(Producto, Producto.id == Receta.producto_id)
+              .filter(Receta.id == rid,
+                      Producto.empresa_id == g.usuario.empresa_id)
+              .first_or_404())
     db.session.delete(receta)
     db.session.commit()
     return jsonify({'ok': True})
@@ -61,6 +71,7 @@ def eliminar_insumo(rid):
 @recetas_bp.route('/costo/<int:pid>', methods=['GET'])
 @requiere_permiso('inventario.ver')
 def costo_receta(pid):
+    _producto_propio(pid)
     recetas = Receta.query.filter_by(producto_id=pid).all()
     total = 0
     detalle = []

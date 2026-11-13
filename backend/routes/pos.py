@@ -3,15 +3,15 @@ from models import db
 from models.pedido import Pedido, PedidoItem
 from models.mesa import Mesa
 from models.producto import Producto
-from utils.auth_decorators import login_required
-from datetime import datetime, timezone
 from models.pago import Pago
 from models.receta import Receta
-from models.insumo import Insumo
 from models.inventario import InventarioSucursal
+from utils.auth_decorators import login_required, requiere_permiso
+from datetime import datetime, timezone
 import random
 
 pos_bp = Blueprint('pos', __name__)
+METODOS_PAGO = {'efectivo', 'tarjeta', 'transferencia'}
 
 
 # ============================================================
@@ -19,149 +19,162 @@ pos_bp = Blueprint('pos', __name__)
 # ============================================================
 
 @pos_bp.route('/productos', methods=['GET'])
+@login_required
 def lista_productos():
-    """Devuelve la carta activa con validación de stock en tiempo real."""
-    prods = Producto.query.filter_by(activo=True).all()
-    resultado = []
-    
-    for prod in prods:
-        prod_dict = prod.to_dict()
-        
-        # Evaluar si hay stock para al menos 1 unidad de este producto
-        recetas = Receta.query.filter_by(producto_id=prod.id).all()
-        disponible = True
-        faltante = []
-        
-        for r in recetas:
-            if r.opcional: 
-                continue
-            
-            insumo = r.insumo
-            if not insumo: 
-                continue
-                
-            cantidad_necesaria = float(r.cantidad_con_merma())
-            
-            # Buscar stock real en la sucursal (asumiendo sucursal_id = 1 para pruebas)
-            # En producción, obtenemos la sucursal del g.usuario.sucursal_id
-            sucursal_id = 1 
-            reg = InventarioSucursal.query.filter_by(
-                insumo_id=insumo.id, sucursal_id=sucursal_id
-            ).first()
-            
-            stock_actual = float(reg.stock_actual) if reg else 0.0
-            
-            if stock_actual < cantidad_necesaria:
-                disponible = False
-                faltante.append({
-                    'insumo': insumo.nombre,
-                    'necesita': cantidad_necesaria,
-                    'tiene': stock_actual,
-                    'unidad': insumo.unidad
-                })
-                
-        prod_dict['disponible'] = disponible
-        prod_dict['faltante'] = faltante
-        resultado.append(prod_dict)
-        
-    return jsonify(resultado)
+    """Carta de la empresa con disponibilidad según stock de la sucursal."""
+    empresa_id = g.usuario.empresa_id
+    sucursal_id = g.usuario.sucursal_id
 
+    prods = (Producto.query
+             .filter_by(empresa_id=empresa_id, activo=True)
+             .order_by(Producto.categoria, Producto.nombre).all())
+    if not prods:
+        return jsonify([])
+
+    # 2 consultas en total en vez de N+1
+    recetas_por_prod = {}
+    for r in Receta.query.filter(
+            Receta.producto_id.in_([p.id for p in prods])).all():
+        recetas_por_prod.setdefault(r.producto_id, []).append(r)
+
+    stock_suc = {}
+    if sucursal_id:
+        stock_suc = {
+            reg.insumo_id: float(reg.stock_actual or 0)
+            for reg in InventarioSucursal.query.filter_by(sucursal_id=sucursal_id)
+        }
+
+    def stock_de(insumo):
+        if sucursal_id:
+            return stock_suc.get(insumo.id, 0.0)
+        return float(insumo.stock_actual or 0)
+
+    resultado = []
+    for prod in prods:
+        faltante = []
+        for r in recetas_por_prod.get(prod.id, []):
+            if r.opcional or not r.insumo:
+                continue
+            necesita = float(r.cantidad_con_merma())
+            tiene = stock_de(r.insumo)
+            if tiene < necesita:
+                faltante.append({
+                    'insumo': r.insumo.nombre,
+                    'necesita': necesita,
+                    'tiene': tiene,
+                    'unidad': r.insumo.unidad,
+                })
+        d = prod.to_dict()
+        d['disponible'] = not faltante
+        d['faltante'] = faltante
+        resultado.append(d)
+
+    return jsonify(resultado)
 # ============================================================
 #  CREAR PEDIDO
 # ============================================================
 @pos_bp.route('', methods=['POST'])
-@login_required
+@requiere_permiso('pos.pedido.crear')
 def crear_pedido():
-    """Crea un pedido, sus items, marca la mesa ocupada y notifica a cocina."""
     from app import socketio
     from socket_events import emitir_nueva_comanda
 
     data = request.get_json() or {}
     mesa_id = data.get('mesa_id')
-    items = data.get('items', [])
-
+    items = data.get('items') or []
     if not mesa_id or not items:
         return jsonify({'error': 'mesa_id e items son obligatorios'}), 400
 
-    # Verificar que la mesa existe y pertenece a la empresa del usuario
     mesa = Mesa.query.filter_by(
         id=mesa_id, empresa_id=g.usuario.empresa_id
     ).first()
     if not mesa:
         return jsonify({'error': 'Mesa no encontrada'}), 404
 
-    # Crear el pedido con TODOS los campos obligatorios
     pedido = Pedido(
         empresa_id=g.usuario.empresa_id,
         sucursal_id=mesa.sucursal_id,
-        mesa_id=mesa_id,
+        mesa_id=mesa.id,
         usuario_id=g.usuario.id,
         estado='pendiente',
         cerrado=False,
     )
     db.session.add(pedido)
-    db.session.flush()   # Para obtener pedido.id
+    db.session.flush()
 
-    # Agregar items
     total = 0
+    n_items = 0
     for item in items:
-        prod = Producto.query.get(item['producto_id'])
+        try:
+            cantidad = int(item.get('cantidad', 0))
+        except (TypeError, ValueError):
+            cantidad = 0
+        if cantidad <= 0:
+            continue
+
+        # El producto DEBE ser de la misma empresa y estar activo
+        prod = Producto.query.filter_by(
+            id=item.get('producto_id'),
+            empresa_id=g.usuario.empresa_id,
+            activo=True,
+        ).first()
         if not prod:
             continue
-        cantidad = int(item['cantidad'])
-        pi = PedidoItem(
+
+        db.session.add(PedidoItem(
             pedido_id=pedido.id,
             producto_id=prod.id,
             cantidad=cantidad,
-            precio_unitario=prod.precio,
-            notas=item.get('notas', ''),
-        )
+            precio_unitario=prod.precio,   # el precio SIEMPRE viene del servidor
+            notas=(item.get('notas') or '')[:255],
+        ))
         total += float(prod.precio) * cantidad
-        db.session.add(pi)
+        n_items += 1
+
+    if n_items == 0:
+        db.session.rollback()
+        return jsonify({'error': 'Ningún item válido en el pedido'}), 400
 
     pedido.total = total
-
-    # Marcar la mesa como ocupada
     mesa.estado = 'ocupada'
-
+    if not mesa.mesero_id:
+        mesa.mesero_id = g.usuario.id
     db.session.commit()
 
-    # 🔔 Notificar a las pantallas de cocina en vivo
     try:
-        comanda_dict = pedido.to_dict_cocina()
-        emitir_nueva_comanda(socketio, comanda_dict)
+        emitir_nueva_comanda(socketio, pedido.to_dict_cocina(), pedido.empresa_id)
     except Exception as e:
         print(f'⚠️ No se pudo emitir WebSocket: {e}')
 
     return jsonify(pedido.to_dict()), 201
 
-
 # ============================================================
 #  ENVIAR A COCINA (opcional)
 # ============================================================
 @pos_bp.route('/<int:pedido_id>/enviar-cocina', methods=['POST'])
-@login_required
+@requiere_permiso('pos.pedido.crear')
 def enviar_cocina(pedido_id):
-    """Marca el pedido como enviado a cocina (compatibilidad)."""
-    pedido = Pedido.query.get_or_404(pedido_id)
-    pedido.estado = 'pendiente'   # o 'en_cocina' según tu flujo
+    pedido = Pedido.query.filter_by(
+        id=pedido_id, empresa_id=g.usuario.empresa_id
+    ).first_or_404()
+    pedido.estado = 'pendiente'
     db.session.commit()
     return jsonify({'ok': True, 'estado': pedido.estado})
+
 
 
 # ============================================================
 #  CONSUMO DE UNA MESA (para el modal de mesas)
 # ============================================================
 @pos_bp.route('/mesa/<int:mesa_id>/consumo', methods=['GET'])
-@login_required
+@requiere_permiso('mesas.ver', 'pos.ver')
 def consumo_mesa(mesa_id):
-    """Devuelve el consumo actual de una mesa."""
     mesa = Mesa.query.filter_by(
         id=mesa_id, empresa_id=g.usuario.empresa_id
     ).first_or_404()
 
     pedidos = Pedido.query.filter_by(
-        mesa_id=mesa_id, cerrado=False
+        mesa_id=mesa.id, empresa_id=g.usuario.empresa_id, cerrado=False
     ).all()
 
     items = []
@@ -190,12 +203,13 @@ def consumo_mesa(mesa_id):
 #  ABRIR MESA (para el botón "Abrir" en la pantalla de mesas)
 # ============================================================
 @pos_bp.route('/mesa/<int:mesa_id>/abrir', methods=['POST'])
-@login_required
+@requiere_permiso('mesas.abrir')
 def abrir_mesa(mesa_id):
-    """Marca una mesa como ocupada."""
     mesa = Mesa.query.filter_by(
         id=mesa_id, empresa_id=g.usuario.empresa_id
     ).first_or_404()
+    if mesa.estado not in ('libre', 'reservada'):
+        return jsonify({'error': f'La mesa está {mesa.estado}'}), 409
     mesa.estado = 'ocupada'
     mesa.mesero_id = g.usuario.id
     db.session.commit()
@@ -205,36 +219,44 @@ def abrir_mesa(mesa_id):
 #  LIBERAR MESA (pasar de pagada a libre)
 # ============================================================
 @pos_bp.route('/mesa/<int:mesa_id>/liberar', methods=['POST'])
-@login_required
+@requiere_permiso('mesas.abrir', 'mesas.cerrar')
 def liberar_mesa(mesa_id):
     mesa = Mesa.query.filter_by(
         id=mesa_id, empresa_id=g.usuario.empresa_id
     ).first_or_404()
-    
-    # Solo se pueden liberar mesas pagadas o reservadas
+    if mesa.estado == 'ocupada':
+        return jsonify({'error': 'La mesa tiene una cuenta abierta'}), 409
     mesa.estado = 'libre'
     mesa.mesero_id = None
     db.session.commit()
-    
     return jsonify(mesa.to_dict())
 
-from datetime import datetime, timezone
-
 @pos_bp.route('/mesa/<int:mesa_id>/cobrar', methods=['POST'])
-@login_required
+@requiere_permiso('pos.cobrar', 'mesas.cerrar')
 def cobrar_mesa(mesa_id):
     data = request.get_json() or {}
     metodo_pago = data.get('metodo', 'efectivo')
-    monto_recibido = float(data.get('monto', 0))
-    
-    mesa = Mesa.query.filter_by(id=mesa_id, empresa_id=g.usuario.empresa_id).first_or_404()
-    
-    # 1. Buscar todos los pedidos abiertos de esta mesa
-    pedidos = Pedido.query.filter_by(mesa_id=mesa_id, cerrado=False).all()
+    if metodo_pago not in METODOS_PAGO:
+        return jsonify({'error': 'Método de pago inválido'}), 400
+    try:
+        monto_recibido = float(data.get('monto', 0))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Monto inválido'}), 400
+
+    mesa = Mesa.query.filter_by(
+        id=mesa_id, empresa_id=g.usuario.empresa_id
+    ).first_or_404()
+
+    pedidos = Pedido.query.filter_by(
+        mesa_id=mesa.id, empresa_id=g.usuario.empresa_id, cerrado=False
+    ).all()
     if not pedidos:
         return jsonify({'error': 'No hay pedidos pendientes en esta mesa'}), 400
-        
+
     total_cobrar = sum(float(p.total) for p in pedidos)
+    if metodo_pago == 'efectivo' and monto_recibido < total_cobrar:
+        return jsonify({'error': 'Monto recibido insuficiente'}), 400
+
     ahora = datetime.now(timezone.utc)
     
     # 2. Cerrar pedidos y generar los pagos

@@ -1,12 +1,5 @@
-"""
-Servicio de inventario:
-  - Descuento automático por receta al servir un pedido.
-  - Registro de movimientos (kardex).
-  - Actualización de stock por sucursal.
-  - Emisión de alertas de stock mínimo vía WebSocket.
-"""
-
 from decimal import Decimal
+from models import pedido
 from models import db
 from models.insumo import Insumo
 from models.receta import Receta
@@ -173,10 +166,10 @@ def descontar_por_pedido(pedido, usuario_id=None, socketio=None):
 
     db.session.commit()
 
-    # Emitir alertas por WebSocket
+    # Emitir alertas por WebSocket (solo a la empresa dueña del pedido)
     if socketio and alertas:
-        socketio.emit('alerta_stock', {'alertas': alertas}, room='inventario')
-        socketio.emit('alerta_stock', {'alertas': alertas}, room='admin')
+        from socket_events import emitir_alerta_stock
+        emitir_alerta_stock(socketio, alertas, pedido.empresa_id)
 
     return {
         'ok': True,
@@ -200,7 +193,7 @@ def registrar_ingreso(insumo_id, sucursal_id, cantidad, costo_unitario,
 
     mov = _aplicar_movimiento(
         insumo=insumo,
-        sucursal_id=sucursal_id,
+        sucursal_id = pedido.sucursal_id or (pedido.mesa.sucursal_id if pedido.mesa else None),
         tipo='ingreso',
         cantidad=cantidad,
         motivo=f'{motivo} · Factura {factura}' if factura else motivo,

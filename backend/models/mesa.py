@@ -26,3 +26,20 @@ class Mesa(db.Model):
             'estado': self.estado,
             'mesero_id': self.mesero_id,
         }
+
+
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
+
+    mesero = db.relationship('Usuario', foreign_keys=[mesero_id])
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'sucursal_id': self.sucursal_id,
+            'numero': self.numero,
+            'capacidad': self.capacidad,
+            'zona': self.zona,
+            'estado': self.estado,
+            'mesero_id': self.mesero_id,
+            'mesero_nombre': self.mesero.nombre if self.mesero else None,
+        }

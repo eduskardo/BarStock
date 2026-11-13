@@ -12,7 +12,7 @@ from models.usuario import Usuario
 
 
 # Extensiones (se inicializan en create_app)
-socketio = SocketIO(cors_allowed_origins="*", async_mode='gevent')
+socketio = SocketIO(cors_allowed_origins=Config.CORS_ORIGINS, async_mode='gevent')
 jwt = JWTManager()
 
 
@@ -58,7 +58,7 @@ def create_app():
     app.register_blueprint(mesas_bp,       url_prefix='/api/mesas')
     app.register_blueprint(pos_bp,         url_prefix='/api/pedidos')
     app.register_blueprint(cocina_bp,      url_prefix='/api/cocina')
-    app.register_blueprint(recetas_bp, url_prefix='/api/recetas')
+    app.register_blueprint(recetas_bp,     url_prefix='/api/recetas')
     app.register_blueprint(usuarios_bp,    url_prefix='/api/usuarios')
     app.register_blueprint(reportes_bp,    url_prefix='/api/reportes')
     app.register_blueprint(inventario_bp,  url_prefix='/api/inventario')

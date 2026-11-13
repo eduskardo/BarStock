@@ -380,18 +380,12 @@ async function enviarACocina() {
 
     try {
         await PedidosAPI.crear(payload);
-        await PedidosAPI.enviarCocina(payload.mesa_id);
         Utils.mostrarToast('✅ Pedido enviado a cocina', 'success');
         POS.carrito = [];
         renderCarrito();
         actualizarBadgeCarrito();
     } catch (e) {
-        // Demo sin backend
-        console.log('Payload a enviar:', payload);
-        Utils.mostrarToast('Pedido enviado (demo)', 'success');
-        POS.carrito = [];
-        renderCarrito();
-        actualizarBadgeCarrito();
+        Utils.mostrarToast(e.message || 'No se pudo enviar el pedido', 'error');
     }
 }
 
